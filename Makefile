@@ -32,16 +32,14 @@ docker-image-prune:
 	# Remove dangling images only
 	docker image prune -f
 
-lint:
+lint: fmt
 	# Run all linting checks
-	cd backend && poetry run flake8 src tests
-	cd backend && poetry run black --check src tests
-	cd backend && poetry run isort --check-only src tests
+	cd backend && poetry run flake8 app tests
 
 fmt:
 	# Format all code
-	cd backend && poetry run black src tests
-	cd backend && poetry run isort src tests
+	cd backend && poetry run black --line-length 79 app tests
+	cd backend && poetry run isort app tests
 
 check:
 	# Run all checks
