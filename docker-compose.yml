@@ -2,12 +2,31 @@ services:
   backend:
     build: ./backend
     ports:
-      - "8000:8000"
+      - "8001:8000"  # Changed external port to 8001
     volumes:
       - ./backend:/app
+    environment:
+      - DYNAMODB_TABLE=research-metadata
+      - STORAGE_BUCKET=genai-research-storage
+      - AWS_ACCESS_KEY_ID=dummy
+      - AWS_SECRET_ACCESS_KEY=dummy
+      - AWS_REGION=us-east-1
+      - DYNAMODB_ENDPOINT=http://dynamodb-local:8000
+    depends_on:
+      - dynamodb-local
+
   frontend:
     build: ./frontend
     ports:
       - "3000:3000"
     volumes:
       - ./frontend:/app
+
+  dynamodb-local:
+    image: amazon/dynamodb-local
+    ports:
+      - "8000:8000"
+    command: ["-jar", "DynamoDBLocal.jar", "-sharedDb"]
+
+volumes:
+  research-data:
