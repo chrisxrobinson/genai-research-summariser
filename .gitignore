@@ -206,3 +206,16 @@ docker-compose.override.yml
 
 # Poetry
 poetry.lock
+
+# Terraform
+*.tfvars
+!*.tfvars.example
+.terraform/
+*.tfstate
+*.tfstate.backup
+*.tfplan
+
+# Other common exclusions
+.env
+.env.local
+credentials.json

@@ -1,0 +1,52 @@
+name: Deploy Infrastructure
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  terraform:
+    name: 'Terraform Deploy'
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./terraform
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v2
+        with:
+          terraform_version: 1.5.0
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Create terraform.tfvars
+        run: |
+          cat > terraform.tfvars << EOF
+          aws_region = "${{ secrets.AWS_REGION }}"
+          s3_bucket_name = "${{ secrets.S3_BUCKET_NAME }}"
+          dynamodb_table_name = "${{ secrets.DYNAMODB_TABLE_NAME }}"
+          pinecone_api_key = "${{ secrets.PINECONE_API_KEY }}"
+          pinecone_environment = "${{ secrets.PINECONE_ENVIRONMENT }}"
+          pinecone_index_name = "${{ secrets.PINECONE_INDEX_NAME }}"
+          embedding_dimension = ${{ secrets.EMBEDDING_DIMENSION }}
+          mistral_api_key = "${{ secrets.MISTRAL_API_KEY }}"
+          EOF
+
+      - name: Terraform Init
+        run: terraform init
+
+      - name: Terraform Plan
+        run: terraform plan -out=tfplan
+
+      - name: Terraform Apply
+        run: terraform apply -auto-approve tfplan
