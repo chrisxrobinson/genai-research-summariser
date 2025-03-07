@@ -1,4 +1,4 @@
-.PHONY: build up down fastapi frontend test db-shell db-backup db-restore db-query db-stats docker-clean docker-image-prune lint fmt check install-backend install-frontend install-all
+.PHONY: build up down fastapi frontend test db-shell db-backup db-restore db-query db-stats docker-clean docker-image-prune lint fmt check install-backend install-frontend install-all local-init logs restart-localstack clean-all
 
 build:
 	# Build all services
@@ -6,11 +6,30 @@ build:
 
 up:
 	# Start all services
-	docker-compose up
+	docker-compose up -d
 
 down:
 	# Stop and remove containers
 	docker-compose down
+
+logs:
+	# View logs from all containers
+	docker-compose logs -f
+
+local-init:
+	# Initialize local development environment
+	chmod +x ./init-localstack.sh
+	@echo "Starting all services..."
+	docker-compose up -d
+	@echo "Local environment is ready!"
+
+restart-localstack:
+	# Restart LocalStack container
+	docker-compose rm -sf localstack
+	docker-compose up -d localstack
+	@echo "Waiting for LocalStack to initialize..."
+	@sleep 10
+	@echo "LocalStack restarted"
 
 fastapi:
 	# Run the FastAPI service
@@ -59,3 +78,14 @@ install-frontend:
 
 install-all: install-backend install-frontend
 	@echo "All dependencies installed successfully"
+
+setup: install-all build local-init
+	@echo "Project setup complete!"
+
+clean-all: down
+	# Stop containers and remove volumes, networks, etc.
+	docker-compose down -v
+	@echo "Removing any leftover localstack volumes..."
+	-docker volume ls -q | grep localstack | xargs docker volume rm 2>/dev/null || true
+	@docker container ls -a | grep localstack | awk '{print $$1}' | xargs docker container rm -f 2>/dev/null || true
+	@echo "Environment cleanup complete!"

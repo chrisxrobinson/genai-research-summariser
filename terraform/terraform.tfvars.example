@@ -1,0 +1,8 @@
+aws_region = "us-east-1"
+s3_bucket_name = "genai-research-storage"
+dynamodb_table_name = "research-metadata"
+pinecone_api_key = "your-pinecone-api-key"
+pinecone_environment = "us-west1-gcp"
+pinecone_index_name = "research-embeddings"
+embedding_dimension = 1536
+mistral_api_key = "your-mistral-api-key"

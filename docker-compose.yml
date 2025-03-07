@@ -2,31 +2,58 @@ services:
   backend:
     build: ./backend
     ports:
-      - "8001:8000"  # Changed external port to 8001
+      - "8001:8000"
     volumes:
       - ./backend:/app
+    env_file:
+      - .env
     environment:
       - DYNAMODB_TABLE=research-metadata
-      - STORAGE_BUCKET=genai-research-storage
-      - AWS_ACCESS_KEY_ID=dummy
-      - AWS_SECRET_ACCESS_KEY=dummy
+      - S3_BUCKET_NAME=genai-research-storage
+      - AWS_ACCESS_KEY_ID=test
+      - AWS_SECRET_ACCESS_KEY=test
       - AWS_REGION=us-east-1
-      - DYNAMODB_ENDPOINT=http://dynamodb-local:8000
+      - DYNAMODB_ENDPOINT=http://localstack:4566
+      - S3_ENDPOINT=http://localstack:4566
+      - DEV_MODE=true
     depends_on:
-      - dynamodb-local
-
+      localstack:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 15s
+    
   frontend:
     build: ./frontend
     ports:
       - "3000:3000"
     volumes:
       - ./frontend:/app
+      - /app/node_modules
+    depends_on:
+      - backend
 
-  dynamodb-local:
-    image: amazon/dynamodb-local
+  localstack:
+    image: localstack/localstack:latest
     ports:
-      - "8000:8000"
-    command: ["-jar", "DynamoDBLocal.jar", "-sharedDb"]
-
-volumes:
-  research-data:
+      - "4566:4566"
+    environment:
+      - SERVICES=s3,dynamodb
+      - DEFAULT_REGION=us-east-1
+      - AWS_ACCESS_KEY_ID=test
+      - AWS_SECRET_ACCESS_KEY=test
+      - DEBUG=1
+      - PERSISTENCE=0
+      - SKIP_SSL_CERT_DOWNLOAD=1
+      - LAMBDA_EXECUTOR=local
+      - DOCKER_HOST=unix:///var/run/docker.sock
+    volumes:
+      - ./init-localstack.sh:/etc/localstack/init/ready.d/init-localstack.sh
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:4566/_localstack/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
