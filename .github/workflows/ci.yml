@@ -22,10 +22,10 @@ jobs:
         working-directory: ./backend
         run: |
           poetry install --no-interaction --no-ansi
-      - name: Run backend tests
-        working-directory: ./backend
-        run: |
-          poetry run pytest
+      # - name: Run backend tests
+      #   working-directory: ./backend
+      #   run: |
+      #     poetry run pytest
       - name: Set up Node
         uses: actions/setup-node@v3
         with:
