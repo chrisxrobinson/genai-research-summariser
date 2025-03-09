@@ -1,5 +1,3 @@
-import json
-import os
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 from uuid import UUID
@@ -24,26 +22,24 @@ class Storage:
             "aws_access_key_id": settings.aws_access_key_id,
             "aws_secret_access_key": settings.aws_secret_access_key,
         }
-
         if settings.dev_mode:
             self.dynamodb = boto3.resource(
                 "dynamodb",
                 endpoint_url=settings.dynamodb_endpoint,
-                **session_kwargs
+                **session_kwargs,
             )
             self.s3 = boto3.client(
-                "s3", 
-                endpoint_url=settings.s3_endpoint,
-                **session_kwargs
+                "s3", endpoint_url=settings.s3_endpoint, **session_kwargs
             )
         else:
             self.dynamodb = boto3.resource("dynamodb", **session_kwargs)
             self.s3 = boto3.client("s3", **session_kwargs)
-
         self.table = self.dynamodb.Table(settings.dynamodb_table)
         self.bucket_name = settings.s3_bucket_name
 
-    async def get_document_metadata(self, document_id: UUID) -> Optional[Dict[str, Any]]:
+    async def get_document_metadata(
+        self, document_id: UUID
+    ) -> Optional[Dict[str, Any]]:
         """Get document metadata from DynamoDB"""
         try:
             response = self.table.get_item(Key={"id": str(document_id)})
@@ -58,12 +54,10 @@ class Storage:
             # Convert any UUID to string
             if "id" in metadata and isinstance(metadata["id"], UUID):
                 metadata["id"] = str(metadata["id"])
-                
             # Convert datetime objects to ISO format strings
             for key, value in metadata.items():
                 if isinstance(value, datetime):
                     metadata[key] = value.isoformat()
-                
             self.table.put_item(Item=metadata)
             return True
         except ClientError as e:
@@ -79,7 +73,9 @@ class Storage:
             print(f"Error listing documents: {e}")
             return []
 
-    async def upload_pdf(self, document_id: UUID, file_content: bytes) -> Optional[str]:
+    async def upload_pdf(
+        self, document_id: UUID, file_content: bytes
+    ) -> Optional[str]:
         """Upload PDF to S3 and return the key"""
         try:
             key = f"pdfs/{document_id}.pdf"
@@ -87,14 +83,16 @@ class Storage:
                 Bucket=self.bucket_name,
                 Key=key,
                 Body=file_content,
-                ContentType="application/pdf"
+                ContentType="application/pdf",
             )
             return key
         except ClientError as e:
             print(f"Error uploading PDF: {e}")
             return None
 
-    async def upload_text(self, document_id: UUID, text: str, text_type: str) -> Optional[str]:
+    async def upload_text(
+        self, document_id: UUID, text: str, text_type: str
+    ) -> Optional[str]:
         """Upload text content to S3 and return the key"""
         try:
             key = f"{text_type}/{document_id}.txt"
@@ -102,7 +100,7 @@ class Storage:
                 Bucket=self.bucket_name,
                 Key=key,
                 Body=text,
-                ContentType="text/plain"
+                ContentType="text/plain",
             )
             return key
         except ClientError as e:
@@ -134,27 +132,21 @@ class Storage:
             metadata = await self.get_document_metadata(document_id)
             if not metadata:
                 return False
-                
             # Delete from DynamoDB
             self.table.delete_item(Key={"id": str(document_id)})
-            
             # Delete all S3 objects with prefix
             prefix = f"{document_id}"
-            paginator = self.s3.get_paginator('list_objects_v2')
+            paginator = self.s3.get_paginator("list_objects_v2")
             pages = paginator.paginate(Bucket=self.bucket_name, Prefix=prefix)
-            
             object_list = []
             for page in pages:
                 if "Contents" in page:
                     for obj in page["Contents"]:
                         object_list.append({"Key": obj["Key"]})
-            
             if object_list:
                 self.s3.delete_objects(
-                    Bucket=self.bucket_name,
-                    Delete={"Objects": object_list}
+                    Bucket=self.bucket_name, Delete={"Objects": object_list}
                 )
-                
             return True
         except ClientError as e:
             print(f"Error deleting document: {e}")

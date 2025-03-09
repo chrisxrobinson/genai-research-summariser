@@ -1,4 +1,4 @@
-.PHONY: build up down fastapi frontend test db-shell db-backup db-restore db-query db-stats docker-clean docker-image-prune lint fmt check install-backend install-frontend install-all local-init logs restart-localstack clean-all
+.PHONY: build up down fastapi frontend test db-shell db-backup db-restore db-query db-stats docker-clean docker-image-prune lint fmt check fix install-backend install-frontend install-all local-init logs restart-localstack clean-all
 
 build:
 	# Build all services
@@ -64,6 +64,18 @@ check:
 	# Run all checks
 	make lint
 	make test
+
+fix: fix-lint fmt
+	# Fix all code style issues
+	cd backend && poetry run autoflake --in-place --remove-all-unused-imports --recursive app tests
+	cd backend && poetry run black --line-length 79 app tests
+	cd backend && poetry run isort app tests
+
+fix-lint:
+	# Fix specific flake8 issues
+	cd backend && find app -type f -name "*.py" -exec sed -i '' -e 's/[[:space:]]*$$//' {} \;
+	cd backend && find app -type f -name "*.py" -exec sed -i '' -e '/^[[:space:]]*$$/d' {} \;
+	cd backend && find app -type f -name "*.py" -exec sed -i '' -e 's/except:/except Exception:/' {} \;
 
 install-backend:
 	@cd backend && \
