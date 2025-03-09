@@ -3,7 +3,7 @@ from enum import Enum
 from typing import Dict, List, Optional
 from uuid import UUID, uuid4
 
-from pydantic import BaseModel, Field, HttpUrl
+from pydantic import BaseModel, Field
 
 
 class ProcessingStatus(str, Enum):
@@ -31,7 +31,7 @@ class Document(BaseModel):
     pdf_key: str  # S3 key for PDF file
     raw_text_key: Optional[str] = None  # S3 key for extracted text
     tags: List[str] = []
-    
+
     class Config:
         use_enum_values = True
 
